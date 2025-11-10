@@ -99,58 +99,48 @@
     </style>
 </head>
 <body>
-    <main>
-        <div class="container">
-            <h1>Accessibility Test Page</h1>
-            
-            <!-- Fixed: Added alt text -->
-            <div class="image-container">
-                <img src="https://via.placeholder.com/300x200" alt="Placeholder image showing 300 by 200 pixel dimensions" />
-            </div>
-            
-            <!-- Fixed: Added proper labels -->
-            <form>
-                <label for="username">Username:</label>
-                <input type="text" id="username" name="username" placeholder="Username" />
-                
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" placeholder="Email" />
-                
-                <input type="submit" value="Submit" />
-            </form>
-            
-            <!-- Fixed: Added aria-label and type attribute, removed inline onclick -->
-            <div>
-                <button type="button" class="button" id="confirmButton" aria-label="Confirm action">
-                    <span class="icon" aria-hidden="true">✓</span>
-                </button>
-            </div>
-            
-            <!-- Fixed: Improved color contrast -->
-            <p style="color: #767676;">This text has sufficient contrast</p>
-            
-            <!-- Fixed: Used proper heading element -->
-            <div>
-                <h2>This is a proper heading</h2>
-            </div>
-            
-            <!-- Fixed: Added ARIA attributes and semantic nav element -->
-            <div>
-                <button type="button" class="menu-button" id="menuButton" aria-expanded="false" aria-controls="menu" aria-haspopup="true">Menu</button>
-                <nav id="menu" style="display: none;" role="navigation">
-                    <a href="#home">Home</a>
-                    <a href="#about">About</a>
-                    <a href="#contact">Contact</a>
-                </nav>
-            </div>
-            
-            <!-- Fixed: Replaced div with semantic button element -->
-            <button type="button" class="clickable-button" id="clickableButton">Click me</button>
+    <main class="container">
+        <h1>Accessibility Test Page</h1>
+        
+        <div class="image-container">
+            <img src="https://via.placeholder.com/300x200" alt="Placeholder image showing 300 by 200 pixel dimensions" />
         </div>
+        
+        <form>
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" placeholder="Username" />
+            
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" placeholder="Email" />
+            
+            <input type="submit" value="Submit" aria-label="Submit user registration form" />
+        </form>
+        
+        <div>
+            <button type="button" class="button" id="confirmButton" aria-label="Confirm action">
+                <span class="icon" aria-hidden="true">✓</span>
+            </button>
+        </div>
+        
+        <p style="color: #595959;">This text has excellent contrast (AAA compliant)</p>
+        
+        <div>
+            <h2>This is a proper heading</h2>
+        </div>
+        
+        <div>
+            <button type="button" class="menu-button" id="menuButton" aria-expanded="false" aria-controls="menu" aria-haspopup="true">Menu</button>
+            <nav id="menu" style="display: none;" aria-label="Main navigation">
+                <a href="#home" tabindex="-1">Home</a>
+                <a href="#about" tabindex="-1">About</a>
+                <a href="#contact" tabindex="-1">Contact</a>
+            </nav>
+        </div>
+        
+        <button type="button" class="clickable-button" id="clickableButton">Click me</button>
     </main>
 
     <script>
-        // Fixed: Moved event handlers to external JavaScript
         document.getElementById('confirmButton').addEventListener('click', function() {
             alert('Clicked');
         });
@@ -159,9 +149,19 @@
             const menu = document.getElementById('menu');
             const button = document.getElementById('menuButton');
             const isExpanded = button.getAttribute('aria-expanded') === 'true';
+            const menuLinks = menu.querySelectorAll('a');
             
-            menu.style.display = isExpanded ? 'none' : 'block';
-            button.setAttribute('aria-expanded', !isExpanded);
+            if (isExpanded) {
+                menu.style.display = 'none';
+                button.setAttribute('aria-expanded', 'false');
+                menuLinks.forEach(link => link.setAttribute('tabindex', '-1'));
+            } else {
+                menu.style.display = 'block';
+                button.setAttribute('aria-expanded', 'true');
+                menuLinks.forEach(link => link.removeAttribute('tabindex'));
+                const firstLink = menu.querySelector('a');
+                if (firstLink) firstLink.focus();
+            }
         });
         
         document.getElementById('clickableButton').addEventListener('click', function() {
