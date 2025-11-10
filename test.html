@@ -10,6 +10,19 @@
             margin: 20px;
             background-color: #f0f0f0;
         }
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #000;
+            color: #fff;
+            padding: 8px;
+            text-decoration: none;
+            z-index: 100;
+        }
+        .skip-link:focus {
+            top: 0;
+        }
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -87,7 +100,8 @@
     </style>
 </head>
 <body>
-    <main>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <main id="main-content">
         <div class="container">
             <h1>Accessibility Test Page</h1>
             
@@ -104,7 +118,7 @@
                 <label for="email">Email:</label>
                 <input type="email" id="email" name="email" placeholder="Email" />
                 
-                <input type="submit" value="Submit" />
+                <input type="submit" value="Submit Registration" aria-label="Submit registration form" />
             </form>
             
             <!-- Fixed: Added aria-label and aria-hidden -->
@@ -115,7 +129,7 @@
             </div>
             
             <!-- Fixed: Improved color contrast -->
-            <p style="color: #767676;">This text has sufficient contrast</p>
+            <p style="color: #595959;">This text has excellent contrast</p>
             
             <!-- Fixed: Used semantic heading -->
             <h2>This is now a proper heading</h2>
@@ -143,6 +157,7 @@
             alert('Clicked');
         });
         
+        // Menu toggle with focus management
         document.getElementById('menuToggle').addEventListener('click', function() {
             const menu = document.getElementById('menu');
             const button = document.getElementById('menuToggle');
@@ -150,6 +165,35 @@
             
             menu.style.display = isExpanded ? 'none' : 'block';
             button.setAttribute('aria-expanded', !isExpanded);
+            
+            // Move focus to first link when opening
+            if (!isExpanded) {
+                const firstLink = menu.querySelector('a');
+                if (firstLink) {
+                    setTimeout(() => firstLink.focus(), 0);
+                }
+            }
+        });
+        
+        // Keyboard event handling for menu toggle button
+        document.getElementById('menuToggle').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.click();
+            }
+        });
+        
+        // Add Escape key to close menu
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const menu = document.getElementById('menu');
+                const button = document.getElementById('menuToggle');
+                if (button.getAttribute('aria-expanded') === 'true') {
+                    menu.style.display = 'none';
+                    button.setAttribute('aria-expanded', 'false');
+                    button.focus();
+                }
+            }
         });
         
         document.getElementById('clickableBtn').addEventListener('click', function() {
