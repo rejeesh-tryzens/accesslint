@@ -1,9 +1,17 @@
 import express from 'express';
-import dotenv from 'dotenv';
 import { handleWebhook } from './webhook-handler.js';
 import { reviewPullRequest } from './pr-reviewer.js';
+import { validateConfig } from './config.js';
 
-dotenv.config();
+// Validate configuration at startup
+try {
+  validateConfig();
+  console.log('✅ Configuration validated successfully');
+} catch (error) {
+  console.error('❌ Configuration error:', error.message);
+  console.error('   Please check your .env file and ensure all required variables are set');
+  process.exit(1);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;

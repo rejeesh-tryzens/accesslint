@@ -166,7 +166,8 @@ function generateReviewComment(results, allIssues) {
 async function createFixPullRequest(owner, repo, originalPRNumber, originalPR, filesToFix) {
   const branchName = `accesslint/fix-pr-${originalPRNumber}-${Date.now()}`;
   const sourceBranch = originalPR.head.ref; // Branch to create fixes on top of
-  const targetBranch = originalPR.base.ref; // Branch the original PR targets (usually main)
+  const targetBranch = originalPR.head.ref; // Target the same branch as the source branch
+  //const targetBranch = originalPR.base.ref; // Branch the original PR targets (usually main)
   
   try {
     // Create new branch from the PR's head branch (where changes are)

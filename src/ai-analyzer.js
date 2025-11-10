@@ -54,11 +54,81 @@ Format your response as JSON:
       ],
       temperature: 0.3,
       max_tokens: 2000,
-      response_format: { type: 'json_object' },
     });
 
     const content = response.content?.[0]?.type === 'text' ? response.content[0].text : '';
-    return JSON.parse(content);
+    
+    // Extract JSON from markdown code blocks if present
+    let jsonContent = content.trim();
+    
+    // Simple and reliable extraction: find content between first and last ```
+    if (jsonContent.includes('```')) {
+      const firstBacktick = jsonContent.indexOf('```');
+      const lastBacktick = jsonContent.lastIndexOf('```');
+      
+      if (firstBacktick !== -1 && lastBacktick !== -1 && lastBacktick > firstBacktick) {
+        // Get everything after the first ```
+        let afterFirst = jsonContent.substring(firstBacktick + 3);
+        
+        // Skip language identifier (like "json") - find first newline or first {
+        const newlineAfterLang = afterFirst.indexOf('\n');
+        const braceAfterLang = afterFirst.indexOf('{');
+        
+        let contentStart = 0;
+        if (newlineAfterLang !== -1) {
+          contentStart = newlineAfterLang + 1;
+        } else if (braceAfterLang !== -1) {
+          contentStart = braceAfterLang;
+        } else {
+          // No newline or brace, skip any whitespace
+          const match = afterFirst.match(/\S/);
+          if (match && match.index !== undefined) {
+            contentStart = match.index;
+          }
+        }
+        
+        // Get content from start position to before the last ```
+        // The last ``` is at position (lastBacktick - firstBacktick - 3) in afterFirst
+        const endPosInAfterFirst = lastBacktick - firstBacktick - 3;
+        
+        if (endPosInAfterFirst > contentStart) {
+          jsonContent = afterFirst.substring(contentStart, endPosInAfterFirst).trim();
+        } else {
+          // Fallback: use simpler calculation - just remove trailing ```
+          jsonContent = afterFirst.substring(contentStart).replace(/```\s*$/, '').trim();
+        }
+      }
+    }
+    
+    // If still no valid JSON, try to find JSON object boundaries
+    if (!jsonContent.startsWith('{') && !jsonContent.startsWith('[')) {
+      const jsonStart = jsonContent.indexOf('{');
+      const jsonEnd = jsonContent.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        jsonContent = jsonContent.substring(jsonStart, jsonEnd + 1);
+      }
+    }
+    
+    // Final aggressive cleanup: remove any remaining markdown artifacts
+    jsonContent = jsonContent.trim();
+    // Remove any leading ```json or ```
+    jsonContent = jsonContent.replace(/^```[a-z]*\s*\n?/i, '');
+    jsonContent = jsonContent.replace(/^```\s*\n?/i, '');
+    // Remove any trailing ```
+    jsonContent = jsonContent.replace(/\n?\s*```$/i, '');
+    jsonContent = jsonContent.replace(/\n?```$/i, '');
+    jsonContent = jsonContent.trim();
+    
+    // Try to parse the JSON
+    try {
+      return JSON.parse(jsonContent);
+    } catch (parseError) {
+      // Log the content we tried to parse for debugging
+      console.error('Failed to parse JSON. Original content length:', content.length);
+      console.error('Extracted JSON content (first 300 chars):', jsonContent.substring(0, 300));
+      console.error('Extracted JSON content (last 100 chars):', jsonContent.substring(Math.max(0, jsonContent.length - 100)));
+      throw new Error(`Failed to parse JSON response: ${parseError.message}`);
+    }
   } catch (error) {
     console.error('Anthropic API error:', error);
     throw new Error(`AI analysis failed: ${error.message}`);
