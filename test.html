@@ -76,6 +76,40 @@
                 <a href="#about">About</a>
                 <a href="#contact">Contact</a>
             </div>
+<body>
+    <div>
+        <h1>This looks like a heading but isn't</h1>
+    </div>
+    
+    <nav aria-label="Main navigation">
+        <div>
+            <a href="/checkout">Checkout</a>
+            <button onclick="toggleMenu()" aria-expanded="false" aria-controls="menu" aria-label="Toggle navigation menu">Menu</button>
+            <div id="menu" style="display: none;">
+                <a href="#home">Home</a>
+                <a href="#about">About</a>
+                <a href="#contact">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            const button = document.querySelector('button[aria-controls="menu"]');
+        <div>
+            <p style="font-size: 24px; font-weight: bold;">This looks like a heading but isn't</p>
+        </div>
+        
+        <!-- Missing ARIA labels -->
+        <div>
+            <a href="/checkout">Home</a>
+            <button onclick="toggleMenu()">Menu</button>
+            <div id="menu" style="display: none;">
+                <a href="#home">Home</a>
+                <a href="#about">About</a>
+                <a href="#contact">Contact</a>
+            </div>
         </div>
         
         <!-- Non-semantic HTML -->
