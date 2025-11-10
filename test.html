@@ -18,11 +18,19 @@
             border-radius: 8px;
         }
         .button {
-            background-color: #ccc;
-            color: #333;
+            background-color: #0066cc;
+            color: #ffffff;
             padding: 10px 20px;
             border: none;
             cursor: pointer;
+        }
+        .button-style {
+            background-color: #0066cc;
+            color: #ffffff;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
         }
         .image-container {
             margin: 20px 0;
@@ -30,64 +38,92 @@
         form {
             margin: 20px 0;
         }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
         input {
             padding: 8px;
-            margin: 5px;
+            margin: 5px 0;
+            display: block;
+        }
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #000;
+            color: #fff;
+            padding: 8px;
+            text-decoration: none;
+            z-index: 100;
+        }
+        .skip-link:focus {
+            top: 0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <main class="container" id="main-content">
         <h1>Accessibility Test Page</h1>
         
-        <!-- Missing alt text -->
+        <!-- Fixed: Added alt text -->
         <div class="image-container">
-            <img src="https://via.placeholder.com/300x200" />
+            <img src="https://via.placeholder.com/300x200" alt="Placeholder image description" />
         </div>
         
-        <!-- Form without proper labels -->
+        <!-- Fixed: Added proper labels -->
         <form>
-            <input type="text" name="username" placeholder="Username" />
-            <input type="email" name="email" placeholder="Email" />
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" placeholder="Username" />
+            
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" placeholder="Email" />
+            
             <input type="submit" value="Submit" />
         </form>
         
-        <!-- Button without accessible text -->
+        <!-- Fixed: Added aria-label and aria-hidden -->
         <div>
-            <button class="button" onclick="alert('Clicked')">
-                <span class="icon">✓</span>
+            <button class="button" onclick="alert('Clicked')" aria-label="Confirm selection">
+                <span class="icon" aria-hidden="true">✓</span>
             </button>
         </div>
         
-        <!-- Poor color contrast -->
-        <p style="color: #ccc;">This text has poor contrast</p>
+        <!-- Fixed: Improved color contrast -->
+        <p style="color: #767676;">This text has sufficient contrast</p>
         
-        <!-- Missing heading structure -->
+        <!-- Fixed: Using proper heading element -->
         <div>
-            <p style="font-size: 24px; font-weight: bold;">This looks like a heading but isn't</p>
+            <h2>This is a proper heading</h2>
         </div>
         
-        <!-- Missing ARIA labels -->
+        <!-- Fixed: Added ARIA attributes and nav element -->
         <div>
-            <button onclick="toggleMenu()">Menu</button>
-            <div id="menu" style="display: none;">
+            <button onclick="toggleMenu()" aria-expanded="false" aria-controls="menu" aria-haspopup="true">Menu</button>
+            <nav id="menu" style="display: none;" aria-label="Main navigation">
                 <a href="#home">Home</a>
                 <a href="#about">About</a>
                 <a href="#contact">Contact</a>
-            </div>
+            </nav>
         </div>
         test4
         
-        <!-- Non-semantic HTML -->
-        <div onclick="handleClick()" style="cursor: pointer;">
-            Click me (but I'm not a button)
-        </div>
-    </div>
+        <!-- Fixed: Using semantic button element -->
+        <button onclick="handleClick()" class="button-style">
+            Click me
+        </button>
+    </main>
     
     <script>
         function toggleMenu() {
             const menu = document.getElementById('menu');
-            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            const button = document.querySelector('[aria-controls="menu"]');
+            const isExpanded = button.getAttribute('aria-expanded') === 'true';
+            
+            menu.style.display = isExpanded ? 'none' : 'block';
+            button.setAttribute('aria-expanded', !isExpanded);
         }
         
         function handleClick() {
@@ -96,4 +132,3 @@
     </script>
 </body>
 </html>
-
