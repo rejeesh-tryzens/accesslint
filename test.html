@@ -75,12 +75,10 @@
     <div class="container">
         <h1>Accessibility Test Page</h1>
         
-        <!-- Fixed: Added alt text -->
         <div class="image-container">
-            <img src="https://via.placeholder.com/300x200" alt="Placeholder image showing 300 by 200 pixel dimensions" />
+            <img src="https://via.placeholder.com/300x200" alt="" role="presentation" />
         </div>
         
-        <!-- Fixed: Form with proper labels -->
         <form>
             <label for="username">Username</label>
             <input type="text" id="username" name="username" placeholder="Username" />
@@ -88,36 +86,30 @@
             <label for="email">Email</label>
             <input type="email" id="email" name="email" placeholder="Email" />
             
-            <input type="submit" value="Submit" />
+            <input type="submit" value="Submit Form" />
         </form>
         
-        <!-- Fixed: Button with accessible text and aria-label -->
         <div>
             <button class="button" onclick="alert('Clicked')" aria-label="Confirm selection">
                 <span class="icon" aria-hidden="true">✓</span>
             </button>
         </div>
         
-        <!-- Fixed: Improved color contrast -->
-        <p style="color: #767676;">This text now has sufficient contrast</p>
+        <p style="color: #595959;">This text now has sufficient contrast</p>
         
-        <!-- Fixed: Proper heading structure -->
         <div>
             <h2>This is now a proper heading</h2>
         </div>
         
-        <!-- Fixed: ARIA labels for menu and corrected link text -->
         <nav>
-            <a href="/">Home</a>
-            <button onclick="toggleMenu()" aria-expanded="false" aria-controls="menu" aria-haspopup="true">Menu</button>
-            <div id="menu" role="menu" style="display: none;">
-                <a href="#home" role="menuitem">Home</a>
-                <a href="#about" role="menuitem">About</a>
-                <a href="#contact" role="menuitem">Contact</a>
+            <button onclick="toggleMenu()" aria-expanded="false" aria-controls="menu">Menu</button>
+            <div id="menu" style="display: none;">
+                <a href="/">Home</a>
+                <a href="#about">About</a>
+                <a href="#contact">Contact</a>
             </div>
         </nav>
         
-        <!-- Fixed: Semantic HTML with button element -->
         <button onclick="handleClick()" class="custom-button">
             Click me (now I'm a proper button)
         </button>
@@ -132,18 +124,27 @@
             if (isExpanded) {
                 menu.style.display = 'none';
                 button.setAttribute('aria-expanded', 'false');
-                button.focus();
             } else {
                 menu.style.display = 'block';
                 button.setAttribute('aria-expanded', 'true');
-                const firstMenuItem = menu.querySelector('a');
-                if (firstMenuItem) firstMenuItem.focus();
             }
         }
         
         function handleClick() {
             alert('Clicked!');
         }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const menu = document.getElementById('menu');
+                const button = document.querySelector('[aria-controls="menu"]');
+                if (menu.style.display !== 'none') {
+                    menu.style.display = 'none';
+                    button.setAttribute('aria-expanded', 'false');
+                    button.focus();
+                }
+            }
+        });
     </script>
 </body>
 </html>
