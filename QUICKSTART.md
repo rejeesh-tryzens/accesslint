@@ -109,7 +109,7 @@ ngrok http 3000
 **AI analysis failing**
 - Verify Anthropic API key is correct
 - Check you have credits in your Anthropic account
-- Ensure model is set correctly in `.env` (e.g., `ANTHROPIC_MODEL=claude-3-5-sonnet-latest`)
+- Ensure model is set correctly in `.env` (e.g., `ANTHROPIC_MODEL=claude-sonnet-4-5-20250929`)
 
 ## Next Steps
 
