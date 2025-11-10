@@ -78,10 +78,11 @@ export async function reviewPullRequest(owner, repo, prNumber) {
         console.log(`[SUCCESS] No issues found in ${file.filename}`);
       }
     } catch (error) {
-      console.error(`[ERROR] Failed to analyze ${file.filename}:`, error.message);
+      console.error(`[ERROR:ANALYSIS] Failed to analyze ${file.filename}:`, error.message);
       reviewResults.push({
         file: file.filename,
         error: error.message,
+        errorType: 'analysis_failed',
       });
     }
   }
@@ -107,6 +108,14 @@ export async function reviewPullRequest(owner, repo, prNumber) {
 
 /**
  * Generate review comment for PR
+ * 
+ * Heading structure for accessibility:
+ * - h2: Main "Accessibility Review Summary" title
+ * - h3: Section titles like "Issues by File"
+ * - h4: Individual file names
+ * 
+ * This hierarchy ensures proper document outline for screen readers.
+ * Text labels always precede emoji to ensure screen reader accessibility.
  */
 function generateReviewComment(results, allIssues) {
   const criticalIssues = allIssues.filter(i => i.severity === 'critical');
@@ -149,7 +158,7 @@ function generateReviewComment(results, allIssues) {
       if (issue.fixedCode) {
         // Ensure valid language for code block
         const validLanguages = ['html', 'javascript', 'jsx', 'typescript', 'tsx', 'vue', 'svelte'];
-        const lang = validLanguages.includes(result.language) ? result.language : 'html';
+        const lang = validLanguages.includes(result.language) ? result.language : 'text';
         comment += `\n\`\`\`${lang}\n${issue.fixedCode}\n\`\`\`\n`;
       }
       
@@ -230,7 +239,7 @@ async function createFixPullRequest(owner, repo, originalPRNumber, originalPR, f
     
     return fixPR;
   } catch (error) {
-    console.error('[ERROR] Failed to create fix PR:', error);
+    console.error('[ERROR:PR_CREATION] Failed to create fix PR:', error.message);
     throw error;
   }
 }
