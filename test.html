@@ -61,6 +61,22 @@
         .skip-link:focus {
             top: 0;
         }
+        button:focus, a:focus {
+            outline: 3px solid #0066cc;
+            outline-offset: 2px;
+        }
+        button:focus-visible, a:focus-visible {
+            outline: 3px solid #0066cc;
+            outline-offset: 2px;
+        }
+        #menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        #menu li {
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -70,18 +86,18 @@
         
         <!-- Fixed: Added alt text -->
         <div class="image-container">
-            <img src="https://via.placeholder.com/300x200" alt="Placeholder image description" />
+            <img src="https://via.placeholder.com/300x200" alt="" role="presentation" />
         </div>
         
         <!-- Fixed: Added proper labels -->
         <form>
             <label for="username">Username:</label>
-            <input type="text" id="username" name="username" placeholder="Username" />
+            <input type="text" id="username" name="username" placeholder="Username" autocomplete="username" />
             
             <label for="email">Email:</label>
-            <input type="email" id="email" name="email" placeholder="Email" />
+            <input type="email" id="email" name="email" placeholder="Email" autocomplete="email" />
             
-            <input type="submit" value="Submit" />
+            <button type="submit" class="button-style">Submit</button>
         </form>
         
         <!-- Fixed: Added aria-label and aria-hidden -->
@@ -92,7 +108,7 @@
         </div>
         
         <!-- Fixed: Improved color contrast -->
-        <p style="color: #767676;">This text has sufficient contrast</p>
+        <p style="color: #595959;">This text has sufficient contrast</p>
         
         <!-- Fixed: Using proper heading element -->
         <div>
@@ -101,14 +117,15 @@
         
         <!-- Fixed: Added ARIA attributes and nav element -->
         <div>
-            <button onclick="toggleMenu()" aria-expanded="false" aria-controls="menu" aria-haspopup="true">Menu</button>
+            <button onclick="toggleMenu()" aria-expanded="false" aria-controls="menu" aria-haspopup="menu">Menu</button>
             <nav id="menu" style="display: none;" aria-label="Main navigation">
-                <a href="#home">Home</a>
-                <a href="#about">About</a>
-                <a href="#contact">Contact</a>
+                <ul>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
             </nav>
         </div>
-        test4
         
         <!-- Fixed: Using semantic button element -->
         <button onclick="handleClick()" class="button-style">
@@ -122,13 +139,34 @@
             const button = document.querySelector('[aria-controls="menu"]');
             const isExpanded = button.getAttribute('aria-expanded') === 'true';
             
-            menu.style.display = isExpanded ? 'none' : 'block';
-            button.setAttribute('aria-expanded', !isExpanded);
+            if (isExpanded) {
+                menu.style.display = 'none';
+                button.setAttribute('aria-expanded', 'false');
+                button.focus();
+            } else {
+                menu.style.display = 'block';
+                button.setAttribute('aria-expanded', 'true');
+                // Focus first link in menu
+                const firstLink = menu.querySelector('a');
+                if (firstLink) firstLink.focus();
+            }
         }
         
         function handleClick() {
             alert('Clicked!');
         }
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const menu = document.getElementById('menu');
+                const button = document.querySelector('[aria-controls="menu"]');
+                if (button.getAttribute('aria-expanded') === 'true') {
+                    menu.style.display = 'none';
+                    button.setAttribute('aria-expanded', 'false');
+                    button.focus();
+                }
+            }
+        });
     </script>
 </body>
 </html>
