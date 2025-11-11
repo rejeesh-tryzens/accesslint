@@ -14,9 +14,9 @@ const anthropic = new Anthropic({
 export async function analyzeAccessibility(filePath, oldContent, newContent, language) {
   const focusAreas = config.accessibility.focusAreas.join(', ');
   
-  const prompt = `You are an expert accessibility (a11y) reviewer. Analyze the following code changes from a git diff for accessibility issues.
+  const prompt = `You are an expert accessibility (a11y) reviewer. Analyze ONLY accessibility (WCAG 2.x/ARIA) issues in the following changed code from a git diff. Do not comment on non-accessibility topics (performance, style, architecture, etc.).
 
-Focus areas: ${focusAreas}
+Focus areas (strictly a11y): ${focusAreas}
 
 File: ${filePath}
 Language: ${language}
@@ -26,28 +26,26 @@ Changed code:
 ${newContent}
 \`\`\`
 
-Please provide:
-1. A list of accessibility issues found (if any)
-2. Specific suggestions for fixes
-3. Prioritize issues by severity (critical, high, medium, low)
-4. Provide code examples for fixes
-
-Format your response as valid JSON:
+Respond with JSON describing ONLY accessibility issues and actionable fixes:
 {
   "hasIssues": boolean,
   "issues": [
     {
       "severity": "critical" | "high" | "medium" | "low",
-      "type": "string",
-      "description": "string",
-      "suggestion": "string",
-      "fixedCode": "string" (optional code example)
+      "type": "string",                // e.g., "Missing ARIA label", "Low contrast"
+      "description": "string",         // what is wrong and why it violates a11y
+      "suggestion": "string",          // concise, practical fix guidance
+      "fixedCode": "string"            // optional minimal corrected snippet (escape all quotes)
     }
   ],
-  "summary": "string"
+  "summary": "string"                 // brief a11y-only summary
 }
 
-IMPORTANT: Return ONLY valid JSON. All quotes inside string values must be escaped with \\". No trailing commas.`;
+IMPORTANT:
+- Return ONLY valid JSON (no prose outside JSON).
+- Escape all quotes inside strings with \\".
+- No trailing commas.
+- Keep findings limited to accessibility.`;
 
   const maxRetries = 3;
   let lastError = null;
@@ -180,16 +178,19 @@ export async function generateFixes(filePath, content, issues, language) {
     return content;
   }
 
+  const focusAreas = config.accessibility.focusAreas.join(', ');
   const issuesText = issues.map((issue, idx) => 
     `${idx + 1}. [${issue.severity.toUpperCase()}] ${issue.type}: ${issue.description}\n   Fix: ${issue.suggestion}${issue.fixedCode ? `\n   Example:\n\`\`\`${language}\n${issue.fixedCode}\n\`\`\`` : ''}`
   ).join('\n\n');
 
-  const prompt = `You are an expert accessibility developer. Fix the following code based on the accessibility issues identified.
+  const prompt = `You are an expert accessibility (a11y) developer. Fix ONLY accessibility (WCAG 2.x/ARIA) issues in the following changed code from a git diff. Do not modify unrelated code or address non-a11y topics (performance, style, architecture, etc.).
+
+Focus areas (strictly a11y): ${focusAreas}
 
 File: ${filePath}
 Language: ${language}
 
-Changed code from git diff:
+Changed code:
 \`\`\`${language}
 ${content}
 \`\`\`
@@ -197,7 +198,10 @@ ${content}
 Issues to fix:
 ${issuesText}
 
-Please provide the COMPLETE fixed code. Only output the fixed code, wrapped in a code block. Do not add explanations outside the code block.`;
+IMPORTANT:
+- Provide the COMPLETE fixed file content with ONLY accessibility-related (WCAG/ARIA) changes applied.
+- Do not introduce style changes, refactors, or non-a11y edits.
+- Only output the fixed code, wrapped in a single code block. No explanations.`;
 
   try {
     const response = await anthropic.messages.create({
