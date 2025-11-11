@@ -1,56 +1,75 @@
-import { getPullRequest, getFileContent, createBranch, createOrUpdateFile, createPullRequest, createPRComment } from './github-client.js';
+import { getPullRequest, getPullRequestDiff, getFileContentWithSha, createBranch, createOrUpdateFile, createPullRequest, createPRComment, listPullRequests } from './github-client.js';
 import { analyzeAccessibility, generateFixes } from './ai-analyzer.js';
-import { config } from './config.js';
-import { parseDiff } from './diff-parser.js';
+import { parseDiff, extractChangedCode } from './diff-parser.js';
 
 /**
  * Main function to review a pull request for accessibility issues
+ * Only analyzes code changes from git diff
  */
 export async function reviewPullRequest(owner, repo, prNumber) {
   console.log(`🔍 Reviewing PR #${prNumber} in ${owner}/${repo}`);
 
-  // Get PR details
-  const pr = await getPullRequest(owner, repo, prNumber);
+  // Get PR details and diff
+  const [pr, diff] = await Promise.all([
+    getPullRequest(owner, repo, prNumber),
+    getPullRequestDiff(owner, repo, prNumber),
+  ]);
   
   if (!pr) {
     throw new Error(`PR #${prNumber} not found`);
   }
 
-  console.log(`📝 Analyzing ${pr.files.length} file(s)`);
+  // Parse diff to extract changed sections per file
+  const fileDiffs = parseDiff(diff);
+  const reviewableFiles = pr.files.filter(file => 
+    file.status !== 'removed' && isReviewableFile(file.filename)
+  );
+
+  console.log(`📝 Analyzing ${reviewableFiles.length} file(s) from diff`);
 
   const reviewResults = [];
   const allIssues = [];
   const filesToFix = [];
 
-  // Analyze each changed file
-  for (const file of pr.files) {
-    if (file.status === 'removed' || !isReviewableFile(file.filename)) {
+  // Analyze each changed file using only diff data
+  for (const file of reviewableFiles) {
+    const fileDiff = fileDiffs[file.filename];
+    
+    if (!fileDiff || !fileDiff.hunks || fileDiff.hunks.length === 0) {
+      console.log(`⚠️  No diff found for ${file.filename}, skipping`);
       continue;
     }
 
     try {
       const language = getLanguage(file.filename);
       
-      // Get old and new content
-      const oldContent = file.status !== 'added' 
-        ? await getFileContent(owner, repo, file.filename, pr.base.ref)
-        : null;
-      
-      const newContent = file.status !== 'removed'
-        ? await getFileContent(owner, repo, file.filename, pr.head.ref)
-        : null;
+      // Extract all changed code chunks from diff
+      const changedChunks = [];
+      for (const hunk of fileDiff.hunks) {
+        const changedCode = extractChangedCode(hunk.lines);
+        if (changedCode.trim()) {
+          changedChunks.push({
+            code: changedCode,
+            hunk: hunk,
+          });
+        }
+      }
 
-      if (!newContent) {
+      if (changedChunks.length === 0) {
+        console.log(`ℹ️  No code additions found in ${file.filename}`);
         continue;
       }
 
-      console.log(`🤖 AI analyzing ${file.filename}...`);
+      // Combine all changed chunks for analysis
+      const changedContent = changedChunks.map(c => c.code).join('\n\n// --- Next changed section ---\n\n');
       
-      // Analyze with AI
+      console.log(`🤖 AI analyzing ${changedChunks.length} changed section(s) in ${file.filename}...`);
+      
+      // Analyze only changed sections from diff
       const analysis = await analyzeAccessibility(
         file.filename,
-        oldContent,
-        newContent,
+        null, // No old content needed - we work with diff only
+        changedContent,
         language
       );
 
@@ -64,18 +83,25 @@ export async function reviewPullRequest(owner, repo, prNumber) {
 
         filesToFix.push({
           path: file.filename,
-          content: newContent,
+          changedChunks: changedChunks,
           issues: analysis.issues,
           language,
           sha: file.sha,
+          hunks: fileDiff.hunks,
         });
 
         reviewResults.push({
           file: file.filename,
-          ...analysis,
+          hasIssues: true,
+          issues: analysis.issues,
+          summary: analysis.summary,
         });
       } else {
         console.log(`✅ No issues found in ${file.filename}`);
+        reviewResults.push({
+          file: file.filename,
+          hasIssues: false,
+        });
       }
     } catch (error) {
       console.error(`❌ Error analyzing ${file.filename}:`, error.message);
@@ -164,38 +190,60 @@ function generateReviewComment(results, allIssues) {
  * Create a pull request with accessibility fixes
  */
 async function createFixPullRequest(owner, repo, originalPRNumber, originalPR, filesToFix) {
+  const sourceBranch = originalPR.head.ref;
+  const targetBranch = originalPR.head.ref;
+  
+  // Check if a fix PR already exists
+  const existingPRs = await listPullRequests(owner, repo, {
+    state: 'open',
+    base: targetBranch,
+  });
+  
+  const fixPRTitlePattern = new RegExp(`🔧 Fix accessibility issues from PR #${originalPRNumber}`);
+  const existingFixPR = existingPRs.find(pr => 
+    pr.head.ref.startsWith('accesslint/fix-pr-') &&
+    pr.head.ref.includes(`-${originalPRNumber}-`) &&
+    fixPRTitlePattern.test(pr.title)
+  );
+  
+  if (existingFixPR) {
+    console.log(`ℹ️  Fix PR already exists: #${existingFixPR.number}`);
+    return existingFixPR;
+  }
+  
   const branchName = `accesslint/fix-pr-${originalPRNumber}-${Date.now()}`;
-  const sourceBranch = originalPR.head.ref; // Branch to create fixes on top of
-  const targetBranch = originalPR.head.ref; // Target the same branch as the source branch
-  //const targetBranch = originalPR.base.ref; // Branch the original PR targets (usually main)
   
   try {
-    // Create new branch from the PR's head branch (where changes are)
+    // Create new branch from the PR's head branch
     await createBranch(owner, repo, branchName, sourceBranch);
 
     // Apply fixes to each file
     for (const file of filesToFix) {
       console.log(`🔧 Generating fixes for ${file.path}...`);
       
-      const fixedContent = await generateFixes(
+      // Get current file content to apply fixes
+      const fileInfo = await getFileContentWithSha(owner, repo, file.path, branchName);
+      if (!fileInfo) {
+        console.warn(`⚠️  Could not get file content for ${file.path}, skipping`);
+        continue;
+      }
+
+      // Generate fixes for changed chunks
+      const changedContent = file.changedChunks.map(c => c.code).join('\n\n// --- Next changed section ---\n\n');
+      
+      const fixedChangedContent = await generateFixes(
         file.path,
-        file.content,
+        changedContent,
         file.issues,
         file.language
       );
 
-      // Get current SHA for the file in the new branch
-      let currentSha = file.sha; // Use original SHA as fallback
-      try {
-        const { getFileContentWithSha } = await import('./github-client.js');
-        const fileInfo = await getFileContentWithSha(owner, repo, file.path, branchName);
-        if (fileInfo) {
-          currentSha = fileInfo.sha;
-        }
-      } catch (e) {
-        // File might not exist, that's okay - will create new file
-        console.log(`Note: Could not get SHA for ${file.path}, will create/update without SHA`);
-      }
+      // Apply fixes to the full file
+      const fixedContent = applyFixesToFile(
+        fileInfo.content,
+        file.changedChunks,
+        fixedChangedContent
+      );
 
       await createOrUpdateFile(
         owner,
@@ -204,11 +252,11 @@ async function createFixPullRequest(owner, repo, originalPRNumber, originalPR, f
         fixedContent,
         branchName,
         `fix(a11y): Fix accessibility issues in ${file.path}`,
-        currentSha
+        fileInfo.sha
       );
     }
 
-    // Create the fix PR targeting the same base as the original PR
+    // Create the fix PR
     const fixPR = await createPullRequest(
       owner,
       repo,
@@ -217,7 +265,7 @@ async function createFixPullRequest(owner, repo, originalPRNumber, originalPR, f
       `**Issues fixed:**\n` +
       filesToFix.map(f => `- ${f.path} (${f.issues.length} issue(s))`).join('\n') +
       `\n\n---\n` +
-      `🤖 Auto-generated by [AccessLint PR Bot](https://github.com/tryzens/accesslint-pr-bot)\n\n` +
+      `🤖 Auto-generated by AccessLint PR Bot\n\n` +
       `> 💡 **Note:** This PR can be merged independently or the fixes can be cherry-picked into PR #${originalPRNumber}`,
       branchName,
       targetBranch
@@ -230,6 +278,38 @@ async function createFixPullRequest(owner, repo, originalPRNumber, originalPR, f
     console.error('Error creating fix PR:', error);
     throw error;
   }
+}
+
+/**
+ * Apply fixes from changed sections back to the full file
+ */
+function applyFixesToFile(fullContent, changedChunks, fixedChangedContent) {
+  if (!fullContent) {
+    return fixedChangedContent;
+  }
+
+  // Split the fixed content back into sections
+  const fixedSections = fixedChangedContent.split(/\n\n\/\/ --- Next changed section ---\n\n/);
+  
+  if (fixedSections.length !== changedChunks.length) {
+    console.warn(`⚠️  Could not match fixed sections (${fixedSections.length} vs ${changedChunks.length}), using original content`);
+    return fullContent;
+  }
+
+  let result = fullContent;
+  
+  // Apply fixes by replacing changed chunks in the full file
+  // This is a simplified approach - in production you might want more sophisticated diff application
+  for (let i = 0; i < changedChunks.length; i++) {
+    const originalChunk = changedChunks[i].code;
+    const fixedChunk = fixedSections[i];
+    
+    if (originalChunk !== fixedChunk && result.includes(originalChunk)) {
+      result = result.replace(originalChunk, fixedChunk);
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -257,4 +337,3 @@ function getLanguage(filename) {
   };
   return langMap[extension] || 'html';
 }
-
