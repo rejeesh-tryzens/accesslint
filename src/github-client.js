@@ -41,30 +41,21 @@ export async function getPullRequest(owner, repo, prNumber) {
 }
 
 /**
- * Get file content from repository
+ * Get PR diff in unified diff format
  */
-export async function getFileContent(owner, repo, path, ref = 'main') {
+export async function getPullRequestDiff(owner, repo, prNumber) {
   const octokit = getOctokit();
   
-  try {
-    const response = await octokit.repos.getContent({
-      owner,
-      repo,
-      path,
-      ref,
-    });
-    
-    if (Array.isArray(response.data)) {
-      return null; // Directory, not a file
-    }
-    
-    return Buffer.from(response.data.content, 'base64').toString('utf-8');
-  } catch (error) {
-    if (error.status === 404) {
-      return null; // File doesn't exist
-    }
-    throw error;
-  }
+  const { data } = await octokit.pulls.get({
+    owner,
+    repo,
+    pull_number: prNumber,
+    mediaType: {
+      format: 'diff',
+    },
+  });
+
+  return data;
 }
 
 /**
@@ -174,6 +165,24 @@ export async function createPRComment(owner, repo, prNumber, body) {
     repo,
     issue_number: prNumber,
     body,
+  });
+
+  return data;
+}
+
+/**
+ * List pull requests with filters
+ */
+export async function listPullRequests(owner, repo, options = {}) {
+  const octokit = getOctokit();
+  
+  const { data } = await octokit.pulls.list({
+    owner,
+    repo,
+    state: options.state || 'open',
+    head: options.head, // Format: "owner:branch" or just "branch"
+    base: options.base,
+    per_page: options.per_page || 100,
   });
 
   return data;
