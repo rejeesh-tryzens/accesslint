@@ -69,9 +69,55 @@
         
         <!-- Missing ARIA labels -->
         <div>
-<nav aria-label="Main navigation">
-  <a href="/">Home</a>
-</nav>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Navigation</title>
+  <style>
+    .nav-link {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      text-decoration: none;
+      color: #333;
+    }
+    
+    .nav-link:focus {
+      outline: 2px solid #005fcc;
+      outline-offset: 2px;
+    }
+    
+    .nav-link:focus:not(:focus-visible) {
+      outline: none;
+    }
+    
+    .nav-link:focus-visible {
+      outline: 2px solid #005fcc;
+      outline-offset: 2px;
+    }
+    
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+  </style>
+</head>
+<body>
+  <nav aria-label="Main navigation">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/about" class="nav-link">About</a>
+    <a href="/contact" class="nav-link">Contact</a>
+  </nav>
+</body>
+</html>
             <button onclick="toggleMenu()">Menu</button>
             <div id="menu" style="display: none;">
                 <a href="#home">Home</a>
