@@ -59,13 +59,14 @@
         <div>
             <p style="font-size: 24px; font-weight: bold;">This looks like a heading but isn't</p>
         </div>
-
-        <!-- Button without accessible text -->
-        <div>
-            <button class="button" onclick="alert('Clicked')">
-                <span class="icon">✓</span>
-            </button>
-        </div>
+<button class="button" id="confirmButton" aria-label="Confirm selection">
+    <span class="icon" aria-hidden="true">✓</span>
+</button>
+<script>
+    document.getElementById('confirmButton').addEventListener('click', function() {
+        alert('Clicked');
+    });
+</script>
         
         <!-- Missing ARIA labels -->
         <div>
