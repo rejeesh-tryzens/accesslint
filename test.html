@@ -39,12 +39,10 @@
 <body>
     <div class="container">
         <h1>Accessibility Test Page</h1>
-
-
-         <!-- Button without accessible text -->
+<!-- Button without accessible text -->
         <div>
-            <button class="button" onclick="alert('Clicked')">
-                <span class="icon">✓</span>
+            <button class="button" onclick="alert('Clicked')" aria-label="Confirm">
+                <span class="icon" aria-hidden="true">✓</span>
             </button>
         </div>
         
