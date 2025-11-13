@@ -52,15 +52,15 @@
             <input type="submit" value="Submit" />
         </form>
         
-        <!-- Button without accessible text -->
+        <!-- Poor color contrast -->
+        <p style="color: #ccc;">This text has poor contrast</p>
+
+         <!-- Button without accessible text -->
         <div>
             <button class="button" onclick="alert('Clicked')">
                 <span class="icon">✓</span>
             </button>
         </div>
-        
-        <!-- Poor color contrast -->
-        <p style="color: #ccc;">This text has poor contrast</p>
         
         <!-- Missing heading structure -->
         <div>
@@ -102,7 +102,7 @@
             </div>
         </div>
         
-        <!-- Non-semantic HTML -->
+        <!-- Non-semantic HTML wihtout acessi -->
         <div onclick="handleClick()" style="cursor: pointer;">
             Click me (but I'm not a button)
         </div>
