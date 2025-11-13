@@ -39,6 +39,14 @@
 <body>
     <div class="container">
         <h1>Accessibility Test Page</h1>
+
+
+         <!-- Button without accessible text -->
+        <div>
+            <button class="button" onclick="alert('Clicked')">
+                <span class="icon">✓</span>
+            </button>
+        </div>
         
         <!-- Missing alt text -->
         <div class="image-container">
@@ -55,12 +63,6 @@
         <!-- Poor color contrast -->
         <p style="color: #ccc;">This text has poor contrast</p>
 
-         <!-- Button without accessible text -->
-        <div>
-            <button class="button" onclick="alert('Clicked')">
-                <span class="icon">✓</span>
-            </button>
-        </div>
         
         <!-- Missing heading structure -->
         <div>
